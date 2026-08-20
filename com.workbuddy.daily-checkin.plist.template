@@ -6,8 +6,8 @@
   <string>com.workbuddy.daily-checkin</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/osascript</string>
-    <string>__INSTALL_DIR__/workbuddy-checkin.applescript</string>
+    <string>/bin/sh</string>
+    <string>__INSTALL_DIR__/scripts/run-checkin.sh</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict>
