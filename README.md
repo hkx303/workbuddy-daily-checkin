@@ -35,6 +35,22 @@
 ./scripts/uninstall.sh
 ```
 
+## 排障
+
+如果日志中出现 `osascript 不允许辅助访问 (-1719)`，请在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中点击 `+`，添加并启用 `/usr/bin/osascript`。这是脚本读取并点击 WorkBuddy 界面所必需的系统权限。
+
+授予权限后，可立即验证已安装任务：
+
+```sh
+launchctl kickstart -k "gui/$(id -u)/com.workbuddy.daily-checkin"
+```
+
+然后查看项目目录中的 `workbuddy-checkin.log` 和任务退出码：
+
+```sh
+launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
+```
+
 ## 开发与迭代
 
 - 修改 `workbuddy-checkin.applescript` 后可直接执行 `./scripts/validate.sh` 做语法检查。
