@@ -8,13 +8,15 @@
 - 时间可配置；默认每天 `00:30`。
 - 使用 macOS 原生 `launchd`，由 `cliclick` 发送底层鼠标点击，避免 Electron 无障碍控件树卡死。
 - 点击位置以 WorkBuddy 当前窗口左上角和尺寸为基准计算；正常桌面布局下无需固定窗口坐标。
+- 点击后会截取加油站卡片，确认按钮由深色“立即领取”切换为浅灰“今日已领”完成态；未确认时任务以失败状态退出，并保留验证截图。
 
 ## 前提
 
 1. 安装并登录 WorkBuddy。
 2. 安装 `cliclick`：`brew install cliclick`。
 3. 在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中，允许 `/usr/bin/osascript` 和 `cliclick` 控制电脑。
-4. 使用 WorkBuddy 的正常桌面布局；任务触发时 Mac 必须开机且已登录。
+4. 安装 Python 3（例如 `brew install python`），用于验证领取完成态。
+5. 使用 WorkBuddy 的正常桌面布局；任务触发时 Mac 必须开机且已登录。
 
 默认从 `/Applications/WorkBuddy.app` 启动客户端；若你的安装位置不同，可在运行前设置 `WORKBUDDY_APP_PATH`。例如：
 

@@ -13,4 +13,19 @@ sed \
   -e 's|__MINUTE__|30|g' \
   "$project_dir/com.workbuddy.daily-checkin.plist.template" > "$plist_path"
 plutil -lint "$plist_path" >/dev/null
-echo "AppleScript syntax is valid."
+
+python_tool="/usr/bin/python3"
+if [ ! -x "$python_tool" ]; then
+  python_tool="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
+fi
+if [ ! -x "$python_tool" ]; then
+  python_tool=$(command -v python3 || true)
+fi
+if [ -z "${python_tool:-}" ] || [ ! -x "$python_tool" ]; then
+  echo "ERROR: Python 3 is required to validate verify-claim.py." >&2
+  exit 1
+fi
+
+PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/workbuddy-daily-checkin-pycache" \
+  "$python_tool" -m py_compile "$project_dir/scripts/verify-claim.py"
+echo "AppleScript, verification script, and LaunchAgent template are valid."

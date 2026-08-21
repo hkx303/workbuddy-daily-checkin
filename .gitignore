@@ -1,3 +1,5 @@
 .DS_Store
 *.log
 *.scpt
+workbuddy-checkin-verification.png
+__pycache__/
