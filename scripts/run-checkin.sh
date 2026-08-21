@@ -20,9 +20,11 @@ if [ ! -d "$workbuddy_app" ]; then
   exit 4
 fi
 
-if ! /usr/bin/open "$workbuddy_app"; then
-  echo "ERROR: macOS could not launch WorkBuddy. Reinstall WorkBuddy, then open it once manually." >&2
-  exit 5
+if ! /usr/bin/pgrep -f "$workbuddy_app/Contents/MacOS/Electron" >/dev/null; then
+  if ! /usr/bin/open "$workbuddy_app"; then
+    echo "ERROR: macOS could not launch WorkBuddy. Reinstall WorkBuddy, then open it once manually." >&2
+    exit 5
+  fi
 fi
 
 window_geometry=""
