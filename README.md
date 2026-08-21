@@ -1,20 +1,26 @@
 # WorkBuddy Daily Check-in
 
-一个仅面向 macOS 的本地自动化：在指定时间唤起 WorkBuddy，依次打开左下角账号菜单和“Buddy 加油站”，再点击已启用的“领取”或“签到”按钮。
+一个仅面向 macOS 的本地自动化：在指定时间唤起 WorkBuddy，依次点击左下角账号头像、“Buddy 加油站”和“立即领取”。
 
 ## 特性
 
 - 不保存账号、密码、Cookie 或 token，复用 WorkBuddy 已登录的客户端状态。
-- 已签到或找不到按钮时安全退出，不会重复点击。
 - 时间可配置；默认每天 `00:30`。
-- 使用 macOS 原生 `launchd`，无需安装第三方依赖。
-- 单次运行最长 75 秒；客户端无响应时会安全终止，避免后台进程悬挂。
+- 使用 macOS 原生 `launchd`，由 `cliclick` 发送底层鼠标点击，避免 Electron 无障碍控件树卡死。
+- 点击位置以 WorkBuddy 当前窗口左上角和尺寸为基准计算；正常桌面布局下无需固定窗口坐标。
 
 ## 前提
 
 1. 安装并登录 WorkBuddy。
-2. 在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中，允许 `/usr/bin/osascript` 控制电脑。
-3. 任务触发时 Mac 必须开机且已登录。
+2. 安装 `cliclick`：`brew install cliclick`。
+3. 在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中，允许 `/usr/bin/osascript` 和 `cliclick` 控制电脑。
+4. 使用 WorkBuddy 的正常桌面布局；任务触发时 Mac 必须开机且已登录。
+
+默认从 `/Applications/WorkBuddy.app` 启动客户端；若你的安装位置不同，可在运行前设置 `WORKBUDDY_APP_PATH`。例如：
+
+```sh
+WORKBUDDY_APP_PATH="/路径/WorkBuddy.app" ./scripts/run-checkin.sh
+```
 
 ## 安装
 
@@ -38,7 +44,9 @@
 
 ## 排障
 
-如果日志中出现 `osascript 不允许辅助访问 (-1719)`，请在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中点击 `+`，添加并启用 `/usr/bin/osascript`。这是脚本读取并点击 WorkBuddy 界面所必需的系统权限。
+如果日志中出现 `not allowed assistive access`、`不允许辅助访问` 或点击没有生效，请在 macOS「系统设置 → 隐私与安全性 → 辅助功能」中点击 `+`，添加并启用 `/usr/bin/osascript` 和 `/opt/homebrew/opt/cliclick/bin/cliclick`。前者读取窗口位置，后者发送鼠标点击。
+
+如果日志中出现 `Unable to find application`、`kLSNoExecutableErr` 或 `macOS could not launch WorkBuddy`，说明 WorkBuddy 的 macOS 应用登记或安装包已损坏。请从官方来源重装 WorkBuddy，并手动打开一次；脚本不会直接启动包内的 Electron 可执行文件，以免导致客户端崩溃。
 
 授予权限后，可立即验证已安装任务：
 
@@ -54,10 +62,10 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 
 ## 开发与迭代
 
-- 修改 `workbuddy-checkin.applescript` 后可直接执行 `./scripts/validate.sh` 做语法检查。
+- 修改 `workbuddy-checkin.applescript` 或 `scripts/run-checkin.sh` 后，执行 `./scripts/validate.sh` 和 `sh -n scripts/run-checkin.sh` 做语法检查。
 - 修改调度模板或安装脚本后，重新运行 `./scripts/install.sh` 以更新已加载的任务。
 - `CHANGELOG.md` 记录发布变化；提交前请不要提交日志、用户目录或已安装的 LaunchAgent 副本。
 
 ## 注意
 
-这是个人桌面自动化示例，并非 WorkBuddy 官方工具。使用者应自行遵守 WorkBuddy 的服务条款、积分规则及当地法律；界面文案变更可能需要调整按钮匹配规则。
+这是个人桌面自动化示例，并非 WorkBuddy 官方工具。使用者应自行遵守 WorkBuddy 的服务条款、积分规则及当地法律；若界面布局发生变化，需要调整 `scripts/run-checkin.sh` 中的点击偏移量。
