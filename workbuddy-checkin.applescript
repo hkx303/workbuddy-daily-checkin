@@ -5,6 +5,8 @@
 tell application "System Events"
     if not (exists process "Electron") then error "WorkBuddy did not start."
     tell process "Electron"
+        set frontmost to true
+        delay 1
         if not (exists window 1) then error "WorkBuddy window did not appear."
 
         -- Electron exposes small helper windows before its visible main window.

@@ -11,16 +11,16 @@
 1. 若 WorkBuddy 尚未运行，尝试启动 `/Applications/WorkBuddy.app`。
 2. 等待 WorkBuddy 主窗口出现，并读取窗口位置与大小。
 3. 用 `cliclick` 按相对坐标执行：账号头像 → Buddy 加油站 → 立即领取。
-4. 等待界面刷新，截取“Buddy 加油站”卡片。
-5. 校验领取按钮是否已从深色的“立即领取”变为浅灰完成态“今日已领”。
+4. 等待界面刷新，读取领取按钮中心的 RGB 颜色。
+5. 校验按钮是否已从深色的“立即领取”切换为浅灰完成态“今日已领”。
 
-只有第 5 步验证通过，任务才会以成功状态结束。失败时会保留验证截图，便于排查。
+只有第 5 步验证通过，任务才会以成功状态结束。
 
 ## 特性与边界
 
 - 不保存账号、密码、Cookie 或 token，直接复用已登录的 WorkBuddy 客户端。
 - 使用 macOS 原生 `launchd`，不需要常驻的第三方守护进程。
-- 使用底层鼠标点击，规避 Electron 无障碍控件树偶发卡死的问题。
+- 使用 `cliclick` 的底层点击和取色能力，规避 Electron 无障碍控件树偶发卡死，也不依赖 LaunchAgent 难以获取的屏幕录制权限。
 - 点击位置会随 WorkBuddy 窗口移动而调整；它针对当前常规桌面布局和默认窗口尺寸校准。
 - 如果 WorkBuddy 改版、缩放界面或改变卡片位置，需要修改 `scripts/run-checkin.sh` 中的偏移量并重新验证。
 
@@ -33,18 +33,12 @@
    brew install cliclick
    ```
 
-3. Python 3，用于验证完成态：
-
-   ```sh
-   brew install python
-   ```
-
-4. 在「系统设置 → 隐私与安全性 → 辅助功能」中，添加并启用：
+3. 在「系统设置 → 隐私与安全性 → 辅助功能」中，添加并启用：
 
    - `/usr/bin/osascript`：读取 WorkBuddy 窗口位置；
    - `/opt/homebrew/opt/cliclick/bin/cliclick`：发送鼠标点击。
 
-5. 任务触发时 Mac 必须开机且已经登录。`launchd` 不会在关机期间补跑错过的签到。
+4. 任务触发时 Mac 必须开机且已经登录。`launchd` 不会在关机期间补跑错过的签到。
 
 默认应用路径为 `/Applications/WorkBuddy.app`。手动运行时可临时指定其他位置：
 
@@ -97,11 +91,10 @@ SUCCESS: claim flow completed and verified.
 launchctl kickstart -k "gui/$(id -u)/com.workbuddy.daily-checkin"
 ```
 
-日志与失败时的验证截图位于项目目录：
+日志位于项目目录：
 
 ```text
 workbuddy-checkin.log
-workbuddy-checkin-verification.png
 ```
 
 查看任务当前状态：
@@ -115,10 +108,9 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 | 现象 | 处理方式 |
 | --- | --- |
 | `not allowed assistive access` / `不允许辅助访问` | 检查辅助功能中是否已启用 `osascript` 和 `cliclick`。 |
-| 日志显示 `click sequence was sent, but WorkBuddy did not show 今日已领` | 打开 `workbuddy-checkin-verification.png`；确认窗口未缩放、卡片位置未变，以及当天确实仍可领取。 |
+| 日志显示 `WorkBuddy claim button is still in the unclaimed state` | 确认窗口未缩放、卡片仍为当前紧凑布局，以及当天确实仍可领取；必要时调整 `scripts/run-checkin.sh` 的领取按钮横向偏移量。 |
 | `WorkBuddy window did not become available` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
 | `macOS could not launch WorkBuddy`、`kLSNoExecutableErr` | WorkBuddy 的安装或 macOS 应用登记可能异常。请从官方来源重装，并手动启动一次客户端。 |
-| `Python 3 is required for verification` | 安装 Python 3，例如 `brew install python`。 |
 
 ## 卸载
 
@@ -138,8 +130,7 @@ sh -n scripts/run-checkin.sh
 ```
 
 - `workbuddy-checkin.applescript`：选择 WorkBuddy 的可见主窗口并返回坐标。
-- `scripts/run-checkin.sh`：启动、点击、截图与验证编排。
-- `scripts/verify-claim.py`：判断领取按钮是否处于“今日已领”完成态。
+- `scripts/run-checkin.sh`：启动、点击、取色验证编排。
 - `com.workbuddy.daily-checkin.plist.template`：`launchd` 调度模板。
 
-不要提交日志、截图、用户目录文件或已安装的 LaunchAgent 副本。
+不要提交日志、用户目录文件或已安装的 LaunchAgent 副本。

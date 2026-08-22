@@ -62,26 +62,8 @@ profile_x=$((window_x + 70))
 profile_y=$((window_y + window_height - 34))
 station_x=$((window_x + 106))
 station_y=$((window_y + window_height - 463))
-claim_x=$((window_x + 76))
+claim_x=$((window_x + 204))
 claim_y=$((window_y + window_height - 92))
-verification_image="$project_dir/workbuddy-checkin-verification.png"
-verification_bitmap="${TMPDIR:-/tmp}/workbuddy-checkin-verification.bmp"
-verification_x=$((window_x + 10))
-verification_y=$((window_y + window_height - 300))
-verification_button_x=$((claim_x - verification_x))
-verification_button_y=$((claim_y - verification_y))
-python_tool="/usr/bin/python3"
-
-if [ ! -x "$python_tool" ]; then
-  python_tool="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
-fi
-if [ ! -x "$python_tool" ]; then
-  python_tool=$(command -v python3 || true)
-fi
-if [ -z "${python_tool:-}" ] || [ ! -x "$python_tool" ]; then
-  echo "ERROR: Python 3 is required for verification." >&2
-  exit 8
-fi
 
 echo "WorkBuddy window: $window_geometry"
 echo "Clicking account avatar, Buddy 加油站, then 立即领取."
@@ -92,13 +74,33 @@ sleep 2
 "$click_tool" c:"$claim_x,$claim_y"
 sleep 3
 
-/usr/sbin/screencapture -x -R "$verification_x,$verification_y,280,290" "$verification_image"
-trap 'rm -f "$verification_bitmap"' EXIT HUP INT TERM
-/usr/bin/sips -s format bmp "$verification_image" --out "$verification_bitmap" >/dev/null
-if "$python_tool" "$project_dir/scripts/verify-claim.py" "$verification_bitmap" "$verification_button_x" "$verification_button_y"; then
+# The current compact Buddy 加油站 card renders 立即领取 in near-black and
+# 今日已领 as a light-gray disabled button. cliclick can sample this exact
+# point without the Screen Recording permission required by screencapture.
+claim_color=$("$click_tool" cp:"$claim_x,$claim_y" 2>&1) || {
+  echo "ERROR: unable to read the claim button color: $claim_color" >&2
+  exit 7
+}
+set -- $claim_color
+if [ "$#" -ne 3 ]; then
+  echo "ERROR: unexpected claim button color output: $claim_color" >&2
+  exit 7
+fi
+for component in "$@"; do
+  case "$component" in
+    '' | *[!0-9]*)
+      echo "ERROR: unexpected claim button color output: $claim_color" >&2
+      exit 7
+      ;;
+  esac
+done
+
+claim_brightness=$((($1 + $2 + $3) / 3))
+echo "Claim button RGB: $claim_color (brightness: $claim_brightness)"
+if [ "$claim_brightness" -ge 150 ]; then
+  echo "VERIFIED: WorkBuddy claim button is in the completed (今日已领) state."
   echo "SUCCESS: claim flow completed and verified."
 else
-  echo "ERROR: click sequence was sent, but WorkBuddy did not show 今日已领." >&2
-  echo "Verification screenshot: $verification_image" >&2
+  echo "ERROR: WorkBuddy claim button is still in the unclaimed state." >&2
   exit 7
 fi
