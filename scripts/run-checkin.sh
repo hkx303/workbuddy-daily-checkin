@@ -62,7 +62,7 @@ profile_x=$((window_x + 70))
 profile_y=$((window_y + window_height - 34))
 station_x=$((window_x + 106))
 station_y=$((window_y + window_height - 463))
-claim_x=$((window_x + 204))
+claim_x=$((window_x + 76))
 claim_y=$((window_y + window_height - 92))
 
 echo "WorkBuddy window: $window_geometry"
@@ -71,36 +71,62 @@ echo "Clicking account avatar, Buddy 加油站, then 立即领取."
 sleep 1
 "$click_tool" c:"$station_x,$station_y"
 sleep 2
-"$click_tool" c:"$claim_x,$claim_y"
-sleep 3
 
-# The current compact Buddy 加油站 card renders 立即领取 in near-black and
-# 今日已领 as a light-gray disabled button. cliclick can sample this exact
-# point without the Screen Recording permission required by screencapture.
-claim_color=$("$click_tool" cp:"$claim_x,$claim_y" 2>&1) || {
-  echo "ERROR: unable to read the claim button color: $claim_color" >&2
-  exit 7
-}
-set -- $claim_color
-if [ "$#" -ne 3 ]; then
-  echo "ERROR: unexpected claim button color output: $claim_color" >&2
-  exit 7
-fi
-for component in "$@"; do
-  case "$component" in
-    '' | *[!0-9]*)
+# The expanded Buddy 加油站 card renders 立即领取 in near-black and 今日已领
+# as a light-gray disabled button. Sample several points across its interior:
+# a single point can hit the button text while the card is asynchronously
+# repainting after a successful claim.
+read_claim_brightness() {
+  brightness_sum=0
+  sample_count=0
+  for sample_offset in -35 -18 0 18 35; do
+    sample_x=$((claim_x + sample_offset))
+    claim_color=$("$click_tool" cp:"$sample_x,$claim_y" 2>&1) || {
+      echo "ERROR: unable to read the claim button color: $claim_color" >&2
+      exit 7
+    }
+    set -- $claim_color
+    if [ "$#" -ne 3 ]; then
       echo "ERROR: unexpected claim button color output: $claim_color" >&2
       exit 7
-      ;;
-  esac
+    fi
+    for component in "$@"; do
+      case "$component" in
+        '' | *[!0-9]*)
+          echo "ERROR: unexpected claim button color output: $claim_color" >&2
+          exit 7
+          ;;
+      esac
+    done
+    brightness_sum=$((brightness_sum + ($1 + $2 + $3) / 3))
+    sample_count=$((sample_count + 1))
+  done
+
+  printf '%s\n' "$((brightness_sum / sample_count))"
+}
+
+baseline_brightness=$(read_claim_brightness)
+echo "Claim button baseline brightness: $baseline_brightness"
+if [ "$baseline_brightness" -ge 150 ]; then
+  echo "SKIP: claim button was already in a completed-looking state."
+  exit 0
+fi
+
+"$click_tool" c:"$claim_x,$claim_y"
+
+verification_attempt=0
+while [ "$verification_attempt" -lt 30 ]; do
+  claim_brightness=$(read_claim_brightness)
+  echo "Claim button average brightness: $claim_brightness"
+  if [ "$claim_brightness" -ge 150 ] && [ "$claim_brightness" -ge $((baseline_brightness + 100)) ]; then
+    echo "VERIFIED: WorkBuddy claim button is in the completed (今日已领) state."
+    echo "SUCCESS: claim flow completed and verified."
+    exit 0
+  fi
+
+  verification_attempt=$((verification_attempt + 1))
+  sleep 2
 done
 
-claim_brightness=$((($1 + $2 + $3) / 3))
-echo "Claim button RGB: $claim_color (brightness: $claim_brightness)"
-if [ "$claim_brightness" -ge 150 ]; then
-  echo "VERIFIED: WorkBuddy claim button is in the completed (今日已领) state."
-  echo "SUCCESS: claim flow completed and verified."
-else
-  echo "ERROR: WorkBuddy claim button is still in the unclaimed state." >&2
-  exit 7
-fi
+echo "ERROR: WorkBuddy claim button did not enter the completed state within 60 seconds." >&2
+exit 7

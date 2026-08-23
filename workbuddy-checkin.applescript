@@ -2,6 +2,11 @@
 -- The mouse-click sequence lives in scripts/run-checkin.sh because Electron's
 -- accessibility tree is too unstable for reliable element-based clicks.
 
+try
+    tell application id "com.workbuddy.workbuddy" to activate
+end try
+delay 1
+
 tell application "System Events"
     if not (exists process "Electron") then error "WorkBuddy did not start."
     tell process "Electron"

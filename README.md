@@ -11,16 +11,16 @@
 1. 若 WorkBuddy 尚未运行，尝试启动 `/Applications/WorkBuddy.app`。
 2. 等待 WorkBuddy 主窗口出现，并读取窗口位置与大小。
 3. 用 `cliclick` 按相对坐标执行：账号头像 → Buddy 加油站 → 立即领取。
-4. 等待界面刷新，读取领取按钮中心的 RGB 颜色。
-5. 校验按钮是否已从深色的“立即领取”切换为浅灰完成态“今日已领”。
+4. 点击前读取按钮内五个像素，建立“立即领取”的深色亮度基线。
+5. 点击后最长等待 60 秒；只有按钮亮度显著高于基线、进入“今日已领”的浅灰完成态，才报告成功。
 
-只有第 5 步验证通过，任务才会以成功状态结束。
+若点击前已是完成态，任务会安全跳过，不会重复领取。
 
 ## 特性与边界
 
 - 不保存账号、密码、Cookie 或 token，直接复用已登录的 WorkBuddy 客户端。
 - 使用 macOS 原生 `launchd`，不需要常驻的第三方守护进程。
-- 使用 `cliclick` 的底层点击和取色能力，规避 Electron 无障碍控件树偶发卡死，也不依赖 LaunchAgent 难以获取的屏幕录制权限。
+- 使用 `cliclick` 的底层点击和多点取色能力，规避 Electron 无障碍控件树偶发卡死，也不依赖 LaunchAgent 难以获取的屏幕录制权限。
 - 点击位置会随 WorkBuddy 窗口移动而调整；它针对当前常规桌面布局和默认窗口尺寸校准。
 - 如果 WorkBuddy 改版、缩放界面或改变卡片位置，需要修改 `scripts/run-checkin.sh` 中的偏移量并重新验证。
 
@@ -108,7 +108,7 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 | 现象 | 处理方式 |
 | --- | --- |
 | `not allowed assistive access` / `不允许辅助访问` | 检查辅助功能中是否已启用 `osascript` 和 `cliclick`。 |
-| 日志显示 `WorkBuddy claim button is still in the unclaimed state` | 确认窗口未缩放、卡片仍为当前紧凑布局，以及当天确实仍可领取；必要时调整 `scripts/run-checkin.sh` 的领取按钮横向偏移量。 |
+| 日志显示 `did not enter the completed state within 60 seconds` | 确认窗口未缩放、卡片布局未变，以及领取结果没有被登录弹窗或远程桌面遮挡；必要时调整 `scripts/run-checkin.sh` 的领取按钮偏移量。 |
 | `WorkBuddy window did not become available` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
 | `macOS could not launch WorkBuddy`、`kLSNoExecutableErr` | WorkBuddy 的安装或 macOS 应用登记可能异常。请从官方来源重装，并手动启动一次客户端。 |
 
@@ -118,7 +118,7 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 ./scripts/uninstall.sh
 ```
 
-卸载只会移除 LaunchAgent，不会删除项目、日志或验证截图。
+卸载只会移除 LaunchAgent，不会删除项目或日志。
 
 ## 开发
 
