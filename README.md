@@ -16,6 +16,8 @@
 
 若点击前已是完成态，任务会安全跳过，不会重复领取。
 
+它不是一个持续运行的后台脚本：`launchd` 只保存每天 `00:30` 的触发规则；到时间后才启动脚本，脚本结束即退出。
+
 ## 特性与边界
 
 - 不保存账号、密码、Cookie 或 token，直接复用已登录的 WorkBuddy 客户端。
@@ -85,6 +87,8 @@ VERIFIED: WorkBuddy claim button is in the completed (今日已领) state.
 SUCCESS: claim flow completed and verified.
 ```
 
+若当天已经领取过，则会输出 `SKIP: claim button was already in a completed-looking state.`，这同样是正常结果。
+
 也可立即触发已安装的定时任务：
 
 ```sh
@@ -111,6 +115,7 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 | 日志显示 `did not enter the completed state within 60 seconds` | 确认窗口未缩放、卡片布局未变，以及领取结果没有被登录弹窗或远程桌面遮挡；必要时调整 `scripts/run-checkin.sh` 的领取按钮偏移量。 |
 | `WorkBuddy window did not become available within 90 seconds` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
 | `macOS could not launch WorkBuddy`、`kLSNoExecutableErr` | WorkBuddy 的安装或 macOS 应用登记可能异常。请从官方来源重装，并手动启动一次客户端。 |
+| 日志显示 `SKIP: claim button was already in a completed-looking state.` | 当天已领取，无需处理。 |
 
 ## 卸载
 
@@ -126,8 +131,9 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 
 ```sh
 ./scripts/validate.sh
-sh -n scripts/run-checkin.sh
 ```
+
+`validate.sh` 会检查 AppleScript 编译、所有 `scripts/*.sh` 的 shell 语法，以及 LaunchAgent 模板。
 
 - `workbuddy-checkin.applescript`：选择 WorkBuddy 的可见主窗口并返回坐标。
 - `scripts/run-checkin.sh`：启动、点击、取色验证编排。
