@@ -29,7 +29,7 @@ fi
 
 window_geometry=""
 attempt=0
-while [ "$attempt" -lt 15 ]; do
+while [ "$attempt" -lt 45 ]; do
   if window_geometry=$(/usr/bin/osascript "$project_dir/workbuddy-checkin.applescript" 2>/dev/null); then
     break
   fi
@@ -38,7 +38,7 @@ while [ "$attempt" -lt 15 ]; do
 done
 
 if [ -z "$window_geometry" ]; then
-  echo "ERROR: WorkBuddy window did not become available within 30 seconds." >&2
+  echo "ERROR: WorkBuddy window did not become available within 90 seconds." >&2
   exit 6
 fi
 

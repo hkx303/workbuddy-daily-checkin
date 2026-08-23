@@ -9,7 +9,7 @@
 默认每天 `00:30`，用户级 `launchd` 会运行一次脚本：
 
 1. 若 WorkBuddy 尚未运行，尝试启动 `/Applications/WorkBuddy.app`。
-2. 等待 WorkBuddy 主窗口出现，并读取窗口位置与大小。
+2. 最长等待 90 秒，直到 WorkBuddy 主窗口出现并读取窗口位置与大小。
 3. 用 `cliclick` 按相对坐标执行：账号头像 → Buddy 加油站 → 立即领取。
 4. 点击前读取按钮内五个像素，建立“立即领取”的深色亮度基线。
 5. 点击后最长等待 60 秒；只有按钮亮度显著高于基线、进入“今日已领”的浅灰完成态，才报告成功。
@@ -109,7 +109,7 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 | --- | --- |
 | `not allowed assistive access` / `不允许辅助访问` | 检查辅助功能中是否已启用 `osascript` 和 `cliclick`。 |
 | 日志显示 `did not enter the completed state within 60 seconds` | 确认窗口未缩放、卡片布局未变，以及领取结果没有被登录弹窗或远程桌面遮挡；必要时调整 `scripts/run-checkin.sh` 的领取按钮偏移量。 |
-| `WorkBuddy window did not become available` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
+| `WorkBuddy window did not become available within 90 seconds` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
 | `macOS could not launch WorkBuddy`、`kLSNoExecutableErr` | WorkBuddy 的安装或 macOS 应用登记可能异常。请从官方来源重装，并手动启动一次客户端。 |
 
 ## 卸载
