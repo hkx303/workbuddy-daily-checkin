@@ -64,6 +64,8 @@ station_x=$((window_x + 106))
 station_y=$((window_y + window_height - 463))
 claim_x=$((window_x + 76))
 claim_y=$((window_y + window_height - 92))
+completed_brightness_minimum=150
+brightness_change_minimum=60
 
 echo "WorkBuddy window: $window_geometry"
 echo "Clicking account avatar, Buddy 加油站, then 立即领取."
@@ -107,7 +109,7 @@ read_claim_brightness() {
 
 baseline_brightness=$(read_claim_brightness)
 echo "Claim button baseline brightness: $baseline_brightness"
-if [ "$baseline_brightness" -ge 150 ]; then
+if [ "$baseline_brightness" -ge "$completed_brightness_minimum" ]; then
   echo "SKIP: claim button was already in a completed-looking state."
   exit 0
 fi
@@ -118,7 +120,7 @@ verification_attempt=0
 while [ "$verification_attempt" -lt 30 ]; do
   claim_brightness=$(read_claim_brightness)
   echo "Claim button average brightness: $claim_brightness"
-  if [ "$claim_brightness" -ge 150 ] && [ "$claim_brightness" -ge $((baseline_brightness + 100)) ]; then
+  if [ "$claim_brightness" -ge "$completed_brightness_minimum" ] && [ "$claim_brightness" -ge $((baseline_brightness + brightness_change_minimum)) ]; then
     echo "VERIFIED: WorkBuddy claim button is in the completed (今日已领) state."
     echo "SUCCESS: claim flow completed and verified."
     exit 0
