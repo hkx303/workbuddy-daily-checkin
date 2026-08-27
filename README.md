@@ -18,6 +18,16 @@
 
 它不是一个持续运行的后台脚本：`launchd` 只保存每天 `00:30` 的触发规则；到时间后才启动脚本，脚本结束即退出。
 
+## 自动运行限制
+
+这是**界面自动化**，不是 WorkBuddy 的接口调用。因此触发时必须满足以下条件：
+
+- Mac 已开机、已登录且**处于解锁状态**；锁屏时 WorkBuddy 主窗口无法可靠地提供给辅助功能接口，任务会因等不到窗口而退出。
+- WorkBuddy 已登录，且没有登录、更新或其他模态弹窗遮挡主界面。
+- 选择一个通常会解锁使用电脑的时间；例如工作日早上。若在 `00:30` 常常锁屏，可改用 `./scripts/install.sh --hour 9 --minute 5`。
+
+锁屏、关机或错过的触发不会在解锁/开机后自动补领；请解锁后手动运行脚本，或等待下一次计划任务。
+
 ## 特性与边界
 
 - 不保存账号、密码、Cookie 或 token，直接复用已登录的 WorkBuddy 客户端。
@@ -40,7 +50,7 @@
    - `/usr/bin/osascript`：读取 WorkBuddy 窗口位置；
    - `/opt/homebrew/opt/cliclick/bin/cliclick`：发送鼠标点击。
 
-4. 任务触发时 Mac 必须开机且已经登录。`launchd` 不会在关机期间补跑错过的签到。
+4. 任务触发时 Mac 必须开机、已登录且已解锁；详见上方「自动运行限制」。
 
 默认应用路径为 `/Applications/WorkBuddy.app`。手动运行时可临时指定其他位置：
 
@@ -101,6 +111,20 @@ launchctl kickstart -k "gui/$(id -u)/com.workbuddy.daily-checkin"
 workbuddy-checkin.log
 ```
 
+查看最近一次输出：
+
+```sh
+tail -n 40 workbuddy-checkin.log
+```
+
+验收以 WorkBuddy 卡片显示的“今日已领”为准。日志结果的含义如下：
+
+| 日志结尾 | 含义 |
+| --- | --- |
+| `SUCCESS: claim flow completed and verified.` | 本次点击后检测到按钮变为“今日已领”。 |
+| `SKIP: claim button was already in a completed-looking state.` | 运行前当天已领取；脚本没有重复领取。 |
+| `ERROR: ...` | 本次未能完成或验证，需要结合错误信息排查。 |
+
 查看任务当前状态：
 
 ```sh
@@ -113,7 +137,7 @@ launchctl print "gui/$(id -u)/com.workbuddy.daily-checkin"
 | --- | --- |
 | `not allowed assistive access` / `不允许辅助访问` | 检查辅助功能中是否已启用 `osascript` 和 `cliclick`。 |
 | 日志显示 `did not enter the completed state within 60 seconds` | 确认窗口未缩放、卡片布局未变，以及领取结果没有被登录弹窗或远程桌面遮挡；必要时调整 `scripts/run-checkin.sh` 的领取按钮偏移量。 |
-| `WorkBuddy window did not become available within 90 seconds` | 检查 WorkBuddy 是否能正常打开、是否被登录弹窗挡住，以及 Mac 是否处于已登录状态。 |
+| `WorkBuddy window did not become available within 90 seconds` | 常见原因是锁屏、登录/更新弹窗，或客户端启动较慢。先解锁并手动运行一次；若总在固定时间锁屏，请调整计划时间。 |
 | `macOS could not launch WorkBuddy`、`kLSNoExecutableErr` | WorkBuddy 的安装或 macOS 应用登记可能异常。请从官方来源重装，并手动启动一次客户端。 |
 | 日志显示 `SKIP: claim button was already in a completed-looking state.` | 当天已领取，无需处理。 |
 
